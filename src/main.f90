@@ -36,7 +36,7 @@ contains
 
         allocate(permutation(N))
         call sort_create_permutation(N, X, permutation)
-        call sort_apply_permutation(N, X, permutation, .false.)
+        call sort_apply_permutation(N, X, permutation, .true.)
     end subroutine
 
 
