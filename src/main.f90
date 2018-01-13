@@ -1,7 +1,21 @@
+!> ModuleSort
+!! Typesafe sorting routines for integers and reals
+!! Can sort 1d arrays by value, and create permutation array
+!! from one array, and apply to N other arrays.
+!!
+!! Implemented algorithms
+!! Insertionsort O(N^2) time with O(1) space
+!! Mergesort O(N log N) time with O(N) space and O(lg N) allocations
+!! Quicksort O(N log N) time with O(1) space and no allocations
+!! The key value variants _kv add O(N) space and O(1) allocations
+!! Merge- and Quicksort fall back to Insertionsort for small inputs
+!! Remember the worst case time complexity for quicksort is O(N^2)
+
 module ModuleSort
     implicit none
     private
-    public sort, is_sorted, sort_create_permutation, sort_apply_permutation
+    public sort, sort_create_permutation, sort_apply_permutation
+    public is_sorted ! for testing
 
     interface sort
         module procedure sort_int
@@ -19,7 +33,7 @@ module ModuleSort
         module procedure sort_apply_permutation_int
     end interface
 
-    integer, parameter :: INSERTION_THRESHOLD = 16
+    integer, parameter :: INSERTIONSORT_THRESHOLD = 16
 
 contains
     subroutine sort_int(N, X)
@@ -32,11 +46,11 @@ contains
         
         !call insertionsort_int(N, X)
         !call mergesort_int(N, X)
-        !call quicksort_int(N, X)
+        call quicksort_int(N, X)
 
-        allocate(permutation(N))
-        call sort_create_permutation(N, X, permutation)
-        call sort_apply_permutation(N, X, permutation, .true.)
+        !allocate(permutation(N))
+        !call sort_create_permutation(N, X, permutation)
+        !call sort_apply_permutation(N, X, permutation, .true.)
     end subroutine
 
 
@@ -156,7 +170,7 @@ contains
         
         integer :: mid
 
-        if (N <= INSERTION_THRESHOLD) then
+        if (N <= INSERTIONSORT_THRESHOLD) then
             call insertionsort_int(N, X)
             return
         endif
@@ -175,7 +189,7 @@ contains
         
         integer :: mid
         
-        if (N <= INSERTION_THRESHOLD) then
+        if (N <= INSERTIONSORT_THRESHOLD) then
             call insertionsort_kv_int(N, key, val)
             return
         endif
@@ -275,7 +289,7 @@ contains
         
         integer :: mid
 
-        if (N <= INSERTION_THRESHOLD) then
+        if (N <= INSERTIONSORT_THRESHOLD) then
             call insertionsort_int(N, X)    
             return
         endif
@@ -293,7 +307,7 @@ contains
         
         integer :: mid
         
-        if (N <= INSERTION_THRESHOLD) then
+        if (N <= INSERTIONSORT_THRESHOLD) then
             call insertionsort_kv_int(N, key, val)    
             return
         endif
@@ -304,6 +318,7 @@ contains
     end subroutine
 
     subroutine quicksort_partition_int(N, X, mid)
+        ! C. A. R. Hoare partition scheme
         implicit none
         
         integer, intent(in) :: N
@@ -337,6 +352,7 @@ contains
     end subroutine
 
     subroutine quicksort_partition_kv_int(N, key, val, mid)
+        ! C. A. R. Hoare partition scheme
         implicit none
         
         integer, intent(in) :: N
@@ -371,6 +387,7 @@ contains
     end subroutine
 
     pure integer function quicksort_pivot_int(N, X)
+        ! Median of first, mid and last element is implemented
         implicit none
         
         integer, intent(in) :: N
@@ -378,7 +395,9 @@ contains
         
         integer :: a, b, c
 
-        if (N >= 3 .or. INSERTION_THRESHOLD >= 3) then
+        ! Comparison against threshold optimizes away the branch
+        ! while preserving correctness for lower thresholds
+        if (N >= 3 .or. INSERTIONSORT_THRESHOLD >= 3) then
             a = X(1)
             b = X(N/2)
             c = X(N)
