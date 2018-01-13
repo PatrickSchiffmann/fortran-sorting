@@ -24,61 +24,79 @@ module ModuleSort
 contains
     subroutine sort_int(N, X)
         implicit none
-        integer :: N
-        integer, dimension(N) :: X
-        integer, allocatable, dimension(:) :: permutation, temp
-        integer :: i
-        allocate(permutation(N))
         
-        !call mergesort_int(N, X)
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: X
+        
+        integer, allocatable, dimension(:) :: permutation
+        
         !call insertionsort_int(N, X)
+        !call mergesort_int(N, X)
         !call quicksort_int(N, X)
 
+        allocate(permutation(N))
         call sort_create_permutation(N, X, permutation)
-        call sort_apply_permutation(N, X, permutation)
+        call sort_apply_permutation(N, X, permutation, .false.)
     end subroutine
 
 
     subroutine sort_create_permutation_int(N, X, permutation)
         implicit none
+        
         integer, intent(in) :: N
         integer, dimension(N), intent(in) :: X
         integer, dimension(N), intent(out) :: permutation
+        
         integer, dimension(:), allocatable :: copy
         integer :: i
-        
+
         allocate(copy(N))
+        copy = X
+
         do i = 1, N
             permutation(i) = i
         end do
         
-        copy = X
         !call insertionsort_kv_int(N, copy, permutation)
         !call mergesort_kv_int(N, copy, permutation)
         call quicksort_kv_int(N, copy, permutation)
     end subroutine
 
-    subroutine sort_apply_permutation_int(N, values, permutation)
+    subroutine sort_apply_permutation_int(N, values, permutation, asc_opt)
         implicit none
         
         integer, intent(in) :: N
         integer, dimension(N), intent(inout) :: values
         integer, dimension(N), intent(in) :: permutation
-
+        logical, intent(in), optional :: asc_opt
+        
         integer, dimension(:), allocatable :: reordered
         integer :: i
+        logical :: asc
+        
+        if (present(asc_opt)) then
+            asc = asc_opt
+        else
+            asc = .true.
+        end if
         
         allocate(reordered(N))
         do i = 1, N
-            reordered(i) = values(permutation(i))
+            if (asc) then
+                reordered(i) = values(permutation(i))
+            else
+                reordered(N + 1 - i) = values(permutation(i))
+            end if
         end do
         values = reordered
     end subroutine
     
     pure logical function is_sorted_int(N, X)
         implicit none
+
         integer, intent(in) :: N
         integer, dimension(N), intent(in) :: X
+        
         integer :: i
         
         is_sorted_int = .false.
@@ -87,31 +105,33 @@ contains
         end do
 
         is_sorted_int = .true.
-
     end function
 
     subroutine insertionsort_int(N, X)
         implicit none
-        integer :: N
-        integer, dimension(N) :: X
-        integer :: i, j, val
+        
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: X
+        
+        integer :: i, j, cur
         
         do i = 2, N
-            val = X(i)
+            cur = X(i)
             j = i-1
-            do while(j >= 1 .and. X(j) > val)
+            do while(j >= 1 .and. X(j) > cur)
                 X(j+1) = X(j)
                 j = j - 1
             end do
-              
-            X(j+1) = val
+            X(j+1) = cur
         end do
     end subroutine
 
     subroutine insertionsort_kv_int(N, key, val)
         implicit none
-        integer :: N
-        integer, dimension(N) :: key, val
+        
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: key, val
+        
         integer :: i, j, curkey, curval
 
         do i = 2, N
@@ -130,9 +150,11 @@ contains
 
     recursive subroutine mergesort_int(N, X)
         implicit none
-        integer :: N
-        integer, dimension(N) :: X
-        integer :: mid, tmp
+        
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: X
+        
+        integer :: mid
 
         if (N <= INSERTION_THRESHOLD) then
             call insertionsort_int(N, X)
@@ -147,9 +169,11 @@ contains
     
     recursive subroutine mergesort_kv_int(N, key, val)
         implicit none
-        integer :: N
-        integer, dimension(N) :: key, val
-        integer :: mid, tmp
+        
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: key, val
+        
+        integer :: mid
         
         if (N <= INSERTION_THRESHOLD) then
             call insertionsort_kv_int(N, key, val)
@@ -164,14 +188,17 @@ contains
     
     subroutine mergesort_merge_int(N, mid, X)
         implicit none
-        integer :: N, mid
-        integer, dimension(N) :: X
+        
+        integer, intent(in) :: N, mid
+        integer, dimension(N), intent(inout) :: X
 
         integer, dimension(:), allocatable :: sorted
         integer :: i, j, k, cnt
 
         allocate(sorted(N))
-        i = 1; j = mid+1; k = 1
+        i = 1
+        j = mid + 1
+        k = 1
         
         do while(i <= mid .and. j <= N)
             if(X(i) <= X(j)) then
@@ -199,14 +226,17 @@ contains
 
     subroutine mergesort_kv_merge_int(N, mid, key, val)
         implicit none
-        integer :: N, mid
-        integer, dimension(N) :: key, val
+        
+        integer, intent(in) :: N, mid
+        integer, dimension(N), intent(inout) :: key, val
 
         integer, dimension(:), allocatable :: sorted_key, sorted_val
         integer :: i, j, k, cnt
 
         allocate(sorted_key(N), sorted_val(N))
-        i = 1; j = mid+1; k = 1
+        i = 1
+        j = mid + 1
+        k = 1
 
         do while(i <= mid .and. j <= N)
             if(key(i) <= key(j)) then
@@ -239,9 +269,11 @@ contains
     
     recursive subroutine quicksort_int(N, X)
         implicit none
-        integer :: N
-        integer, dimension(N) :: X
-        integer :: mid, pivot
+        
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: X
+        
+        integer :: mid
 
         if (N <= INSERTION_THRESHOLD) then
             call insertionsort_int(N, X)    
@@ -255,9 +287,11 @@ contains
 
     recursive subroutine quicksort_kv_int(N, key, val)
         implicit none
-        integer :: N
-        integer, dimension(N) :: key, val
-        integer :: mid, pivot
+        
+        integer, intent(in) :: N
+        integer, dimension(N), intent(inout) :: key, val
+        
+        integer :: mid
         
         if (N <= INSERTION_THRESHOLD) then
             call insertionsort_kv_int(N, key, val)    
@@ -271,8 +305,10 @@ contains
 
     subroutine quicksort_partition_int(N, X, mid)
         implicit none
-        integer :: N,mid
-        integer, dimension(N) :: X
+        
+        integer, intent(in) :: N
+        integer, intent(out) :: mid
+        integer, dimension(N), intent(inout) :: X
 
         integer :: pivot, i, j
 
@@ -302,8 +338,10 @@ contains
 
     subroutine quicksort_partition_kv_int(N, key, val, mid)
         implicit none
-        integer :: N, mid
-        integer, dimension(N) :: key, val
+        
+        integer, intent(in) :: N
+        integer, intent(out) :: mid
+        integer, dimension(N), intent(inout) :: key, val
 
         integer :: pivot, i, j
 
@@ -334,10 +372,13 @@ contains
 
     pure integer function quicksort_pivot_int(N, X)
         implicit none
+        
         integer, intent(in) :: N
         integer, dimension(N), intent(in) :: X
+        
         integer :: a, b, c
-        if (N >= 3) then
+
+        if (N >= 3 .or. INSERTION_THRESHOLD >= 3) then
             a = X(1)
             b = X(N/2)
             c = X(N)
@@ -350,7 +391,7 @@ contains
                 quicksort_pivot_int = c
             end if
         else
-           quicksort_pivot_int = 1
+           quicksort_pivot_int = X(1)
         end if
     end function
             
