@@ -10,9 +10,27 @@
 !! The key value variants _kv add O(N) space and O(1) allocations
 !! Merge- and Quicksort fall back to Insertionsort for small inputs
 !! Remember the worst case time complexity for quicksort is O(N^2)
+!!
+!! Sample use
+!! use ModuleSort, only: sort, sort_create_permutation, sort_apply_permutation
+!! 1. Sorting an array
+!! integer, dimension(N) :: data = ...
+!! call sort(N, data)
+!! 
+!! 2. Sorting one array, by another
+!! integer, dimension(N) :: keys, values, permutation
+!! call sort_create_permutation(N, keys, values, permutation)
+!! call sort_apply_permutation(N, key, values, permutation)
+!!
+!! 3. Reverse sorting
+!! sort and sort_apply_permutation have an addition optional logical
+!! argument at the end, which reverses the sorting direction. It is
+!! possible to create a permutation and apply it both for ascneding
+!! and descending sorts.
 
 module ModuleSort
     implicit none
+
     private
     public sort, sort_create_permutation, sort_apply_permutation
     public is_sorted ! for testing
@@ -33,24 +51,34 @@ module ModuleSort
         module procedure sort_apply_permutation_int
     end interface
 
-    integer, parameter :: INSERTIONSORT_THRESHOLD = 16
+    integer, parameter :: INSERTIONSORT_THRESHOLD = 2
 
 contains
-    subroutine sort_int(N, X)
+    subroutine sort_int(N, X, asc_opt)
         implicit none
         
         integer, intent(in) :: N
         integer, dimension(N), intent(inout) :: X
-        
+        logical, intent(in), optional :: asc_opt
+
+        logical :: asc
         integer, allocatable, dimension(:) :: permutation
         
-        !call insertionsort_int(N, X)
-        !call mergesort_int(N, X)
-        call quicksort_int(N, X)
+        if (present(asc_opt)) then
+            asc = asc_opt
+        else
+            asc = .true.
+        end if
 
-        !allocate(permutation(N))
-        !call sort_create_permutation(N, X, permutation)
-        !call sort_apply_permutation(N, X, permutation, .true.)
+        if (asc) then
+            !call insertionsort_int(N, X)
+            !call mergesort_int(N, X)
+            call quicksort_int(N, X)
+        else
+            allocate(permutation(N))
+            call sort_create_permutation(N, X, permutation)
+            call sort_apply_permutation(N, X, permutation, asc)
+        end if
     end subroutine
 
 
@@ -105,19 +133,32 @@ contains
         values = reordered
     end subroutine
     
-    pure logical function is_sorted_int(N, X)
+    pure logical function is_sorted_int(N, X, asc_opt)
         implicit none
 
         integer, intent(in) :: N
         integer, dimension(N), intent(in) :: X
-        
+        logical, intent(in), optional :: asc_opt
+
+        logical :: asc
         integer :: i
         
+        if (present(asc_opt)) then
+            asc = asc_opt
+        else
+            asc = .true.
+        end if
+       
         is_sorted_int = .false.
-        do i = 1, N-1
-            if (X(i) > X(i+1)) return
-        end do
-
+        if (asc) then
+            do i = 1, N-1
+                if (X(i) > X(i+1)) return
+            end do
+        else
+            do i = 1, N-1
+                if (X(i) < X(i+1)) return
+            end do
+        end if
         is_sorted_int = .true.
     end function
 
@@ -162,6 +203,8 @@ contains
         end do
     end subroutine
 
+! Hidden for compile speed and code coverage
+#if 0
     recursive subroutine mergesort_int(N, X)
         implicit none
         
@@ -280,7 +323,8 @@ contains
         key = sorted_key
         val = sorted_val
     end subroutine
-    
+#endif
+
     recursive subroutine quicksort_int(N, X)
         implicit none
         
@@ -345,7 +389,7 @@ contains
                 return
             end if
 
-            call swap(X(i), X(j))
+            call swap_int(X(i), X(j))
             i = i + 1
             j = j - 1
         end do
@@ -379,8 +423,8 @@ contains
                 return
             end if
 
-            call swap(key(i), key(j))
-            call swap(val(i), val(j))
+            call swap_int(key(i), key(j))
+            call swap_int(val(i), val(j))
             i = i + 1
             j = j - 1
         end do
@@ -415,7 +459,7 @@ contains
     end function
             
 
-    subroutine swap(x, y)
+    pure subroutine swap_int(x, y)
         integer, intent(inout) :: x, y
         integer :: tmp
         tmp = x
@@ -475,6 +519,8 @@ contains
         
         call sort(5, d0)
         WRITE(*,*) is_sorted(5, d0), d0
+        call sort(5, d0, .false.)
+        WRITE(*,*) is_sorted(5, d0, .false.), d0
         call sort(5, d1)
         WRITE(*,*) is_sorted(5, d1), d1
         call sort(5, d2)
