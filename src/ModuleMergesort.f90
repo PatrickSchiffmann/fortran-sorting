@@ -5,7 +5,7 @@ module ModuleMergesort
     private
     public mergesort_int, mergesort_kv_int
 
-    integer, parameter :: INSERTIONSORT_THRESHOLD = 2
+    integer, parameter :: INSERTIONSORT_THRESHOLD = 16
 
 contains
     

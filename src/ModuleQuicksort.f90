@@ -5,7 +5,7 @@ module ModuleQuicksort
     private
     public quicksort_int, quicksort_kv_int
 
-    integer, parameter :: INSERTIONSORT_THRESHOLD = 4
+    integer, parameter :: INSERTIONSORT_THRESHOLD = 16
 
 contains
     
